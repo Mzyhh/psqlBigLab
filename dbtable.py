@@ -70,10 +70,29 @@ class DbTable:
         self.dbconn.conn.commit()
 
     def truncate(self, restart_id=False, cascade=False):
-        sql = f"TRUNCATE {self.table_name()} {'RESTART IDENTITY' if restart_id else ''} {'CASCADE' if cascade else ''}"
-        cur = self.dbconn.cursor()
+        sql = f"TRUNCATE {self.table_name()} {'RESTART IDENTITY' if restart_id else ''} {'CASCADE' if cascade else ''};"
+        cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         self.dbconn.conn.commit()
+
+    def delete_by_id(self, id):
+        try:
+            sql = f"DELETE FROM {self.table_name()} WHERE id = {id};"
+            cur = self.dbconn.conn.cursor()
+            cur.execute(sql)
+            self.dbconn.conn.commit()
+        except Exception as e:
+            self.dbconn.conn.rollback()
+            raise e 
+
+    def find_by_id(self, id):
+        try:
+            sql = f"SELECT * FROM {self.table_name()} WHERE id = {id};"
+            cur = self.dbconn.conn.cursor()
+            cur.execute(sql)
+            return cur.fetchone()
+        except Exception as e:
+            raise e 
 
     def insert_one(self, vals):
         for i in range(0, len(vals)):

@@ -21,25 +21,27 @@ class Main:
     def __init__(self):
         DbTable.dbconn = self.connection
         self.tables: dict[str, DbTable] = {
-            #'Halls':  Halls(),
+            'Halls':  Halls(),
             'Collections': Collections(),
-            #'Hazard': Hazard(),
+            'Hazard': Hazard(),
             'Items': Items(),
-            #'Prices': Prices(),
-            #'PricesXCollections': PricesXCollections(),
+            'Prices': Prices(),
+            'PricesXCollections': PricesXCollections(),
         }
         
 
     def db_init(self):
-        print("db_init()")
         for table in self.tables.values():
             table.create()
 
     def db_insert_somethings(self):
-        print("db_insert_somethings()")
+        cur = self.connection.conn.cursor()
+        with open('queries/example_fill_tables.sql') as f:
+            sql = "".join(f.readlines())
+            cur.execute(sql)
+        self.connection.conn.commit()
 
     def db_drop(self):
-        print("db_drop()")
         for table in self.tables.values():
             table.truncate(restart_id=True, cascade=True)
 
@@ -58,7 +60,6 @@ class Main:
     def after_main_menu(self, next_step):
         if next_step == "2":
             self.db_drop()
-            # self.db_init()
             self.db_insert_somethings()
             print("Таблицы созданы заново!")
             return "0"
@@ -85,16 +86,34 @@ class Main:
     9 - выход."""
         print(menu)
 
-    def after_show_people(self, next_step):
+    def remove_collection(self):
+        while True:
+            try:
+                n = int(input("Введите порядковый номер коллекции (-1 - для отмены): "))
+                if n == -1:
+                    return "1"
+            except Exception as e:
+                print("Ну совсем плохой ввод, попробуйте еще раз!") 
+
+            try:
+                self.tables["Collections"].delete_by_id(n)
+                break
+            except Exception as e:
+                print('Несуществующий идентификатор')
+
+        return "1"
+
+
+    def after_show_collections(self, next_step):
         while True:
             if next_step == "4":
-                print("Пока не реализовано!")
+                self.remove_collection()
                 return "1"
             elif next_step == "6" or next_step == "7":
                 print("Пока не реализовано!")
                 next_step = "5"
             elif next_step == "5":
-                next_step = self.show_phones_by_people()
+                next_step = self.show_items_by_collection()
             elif next_step != "0" and next_step != "9" and next_step != "3":
                 print("Выбрано неверное число! Повторите ввод!")
                 return "1"
@@ -142,31 +161,31 @@ class Main:
 
         self.tables["Collections"].insert_one(data)
 
-    def show_items_by_collection(self, coll_id=None):
-        if coll_id is None:
-            while True:
-                num = input("Укажите номер строки, в которой записана интересующая Вас персона (0 - отмена):")
-                while len(num.strip()) == 0:
-                    num = input("Пустая строка. Повторите ввод! Укажите номер строки, в которой записана интересующая Вас персона (0 - отмена):")
-                if num == "0":
-                    return "1"
-                collection = self.tables["Collections"].find_by_position(int(num))
-                if not collection:
-                    print("Введено число, неудовлетворяющее количеству людей!")
-                else:
-                    coll_id = int(collection[0])
-                    obj = collection
-                    break
-        print("Выбран человек: " + self.person_obj[2] + " " + self.person_obj[0] + " " + self.person_obj[3])
-        print("Телефоны:")
-        lst = self.tables["Items"].all_by_coll_id(coll_id)
+    def show_items_by_collection(self):
+        obj = None
+        while True:
+            num = input("Укажите номер строки, в которой записана интересующая Вас персона (0 - отмена):")
+            while len(num.strip()) == 0:
+                num = input("Пустая строка. Повторите ввод! Укажите номер строки, в которой записана интересующая Вас персона (0 - отмена):")
+            if num == "0":
+                return "1"
+            try:
+                collection = self.tables["Collections"].find_by_id(int(num))
+                obj = collection
+                break
+            except Exception as e:
+                print("Неверный порядковый номер!")
+
+        print("Выбрана коллекция: " + obj[1])
+        print("Экспонаты:")
+        lst = self.tables["Items"].all_by_coll_id(num)
         for i in lst:
             print(i[1])
         menu = """Дальнейшие операции:
     0 - возврат в главное меню;
-    1 - возврат в просмотр людей;
-    6 - добавление нового телефона;
-    7 - удаление телефона;
+    1 - возврат в просмотр коллекций;
+    6 - добавление нового экспоната;
+    7 - удаление экспоната;
     9 - выход."""
         print(menu)
         return self.read_next_step()
@@ -184,7 +203,7 @@ class Main:
             elif current_menu == "1":
                 self.show_collections()
                 next_step = self.read_next_step()
-                current_menu = self.after_show_people(next_step)
+                current_menu = self.after_show_collections(next_step)
             elif current_menu == "2":
                 self.show_main_menu()
             elif current_menu == "3":

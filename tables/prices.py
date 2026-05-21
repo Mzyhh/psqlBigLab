@@ -1,15 +1,14 @@
 from dbtable import *
+from pgtypes import *
 
 class Prices(DbTable):
-    def table_name(self):
-        return self.dbconn.prefix + '"Prices"'
+    name = '"Prices"'
+    columns = [
+        Column("id", SimplePgType.SERIAL, "PRIMARY KEY", ru_name="№"),
+        Column("type", SimplePgType.INTEGER, "NOT NULL", ru_name="Тип"),
+        Column("cost", SimplePgType.NUMERIC, "CHECK (cost >= 0)", ru_name="Стоимость")
 
-    def columns(self):
-        return {
-            "id": ["serial", "PRIMARY KEY"],
-            "type": ["integer", "NOT NULL"],
-            "cost": ["numeric", "CHECK (cost >= 0)"]
-        }
+        ]
     
     def primary_key(self):
         return ['id']

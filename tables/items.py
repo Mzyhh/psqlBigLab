@@ -24,3 +24,13 @@ class Items(DbTable):
     def table_constraints(self):
         return ['CONSTRAINT items_alt_key UNIQUE (name, description)']
 
+    def all_by_coll_id(self, coll_id: int):
+        sql = f"SELECT * FROM {self.table_name()} WHERE collection_id = {coll_id};" 
+        cur = self.dbconn.conn.cursor()
+        cur.execute(sql)
+        while True:
+            record = cur.fetchone()
+            if record is None:
+                break
+            yield record
+

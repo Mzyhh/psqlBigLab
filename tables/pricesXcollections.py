@@ -1,14 +1,12 @@
 from dbtable import *
+from pgtypes import *
 
 class PricesXCollections(DbTable):
-    def table_name(self):
-        return self.dbconn.prefix + '"PricesXCollections"'
-
-    def columns(self):
-        return {
-            "price_id": ["integer", "NOT NULL"],
-            "collection_id": ["integer", "NOT NULL"]
-        }
+    name = '"PricesXCollections"'
+    columns = [
+        Column("price_id", SimplePgType.INTEGER, "NOT NULL", ru_name="№ билета"),
+        Column("collection_id", SimplePgType.INTEGER, "NOT NULL", ru_name="№ коллекции")
+            ]
     
     def primary_key(self):
         return ['price_id', 'collection_id']

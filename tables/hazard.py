@@ -1,15 +1,13 @@
 from dbtable import *
+from pgtypes import *
 
 class Hazard(DbTable):
-    def table_name(self):
-        return self.dbconn.prefix + '"Hazard"'
-
-    def columns(self):
-        return {
-            "id": ["serial", "PRIMARY KEY"],
-            "name": ["varchar(32)", "NOT NULL", "UNIQUE"],
-            "description": ["text"]
-        }
+    name = '"Hazard"'
+    columns = [
+        Column("id", SimplePgType.SERIAL, "PRIMARY KEY", ru_name="№"),
+        Column("name", Varchar(32), "NOT NULL UNIQUE", ru_name="Название"),
+        Column("description", SimplePgType.TEXT)
+    ]
     
     def primary_key(self):
         return ['id']
