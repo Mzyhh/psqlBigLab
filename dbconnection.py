@@ -7,7 +7,7 @@ class DbConnection:
         self.user = config.user
         self.password = config.password
         self.host = config.host
-        self.prefix = config.dbtableprefix
+        self.prefix: str = config.dbtableprefix
         self.conn = psycopg2.connect(dbname = self.dbname,
                                     user = self.user, 
                                     password = self.password,

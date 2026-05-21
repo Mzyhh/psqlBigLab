@@ -1,12 +1,12 @@
 from dbtable import *
+from pgtypes import *
 
 class Halls(DbTable):
-    def table_name(self):
-        return self.dbconn.prefix + '"Halls"'
-
-    def columns(self):
-        return {"id": ["SERIAL", "PRIMARY KEY"],
-                "name": ["varchar(32)", "UNIQUE"]}
+    name = '"Halls"'
+    columns = [
+        Column("id", SimplePgType.SERIAL, "PRIMARY KEY", ru_name="№"),
+        Column("name", Varchar(32), "UNIQUE")
+    ]
     
     def primary_key(self):
         return ['id']    

@@ -1,21 +1,17 @@
 from dbtable import *
+from pgtypes import *
 
 class Collections(DbTable):
-    def table_name(self):
-        return self.dbconn.prefix + '"Collections"'
 
-    def columns(self):
-        return {
-            "id": ["serial", "PRIMARY KEY"],
-            "name": ["varchar(32)", "UNIQUE"],
-            "description": ["varchar(512)"],
-            "start": ["date"],
-            "end": ["date"]
-        }
+    columns = [
+        Column("id", SimplePgType.SERIAL, "PRIMARY KEY", "№"),
+        Column("name", Varchar(32), "UNIQUE", "Название"),
+        Column("description", Varchar(512), ru_name="Описание"),
+        Column("start", SimplePgType.DATE, ru_name="Начало"),
+        Column('"end"', SimplePgType.DATE, ru_name="Окончание")
+    ]
+    name = '"Collections"'
 
-    def ru_column_names(self):
-        return ["№", "Название", "Описание", "Начало", "Окончание"]
-    
     def primary_key(self):
         return ['id']
 

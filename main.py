@@ -20,13 +20,13 @@ class Main:
 
     def __init__(self):
         DbTable.dbconn = self.connection
-        self.tables = {
-            'Halls':  Halls(),
+        self.tables: dict[str, DbTable] = {
+            #'Halls':  Halls(),
             'Collections': Collections(),
-            'Hazard': Hazard(),
+            #'Hazard': Hazard(),
             'Items': Items(),
-            'Prices': Prices(),
-            'PricesXCollections': PricesXCollections(),
+            #'Prices': Prices(),
+            #'PricesXCollections': PricesXCollections(),
         }
         
 
@@ -37,12 +37,11 @@ class Main:
 
     def db_insert_somethings(self):
         print("db_insert_somethings()")
-        ...
 
     def db_drop(self):
         print("db_drop()")
         for table in self.tables.values():
-            table.drop()
+            table.truncate(restart_id=True, cascade=True)
 
     def show_main_menu(self):
         menu = """Добро пожаловать! 
@@ -59,7 +58,7 @@ class Main:
     def after_main_menu(self, next_step):
         if next_step == "2":
             self.db_drop()
-            self.db_init()
+            # self.db_init()
             self.db_insert_somethings()
             print("Таблицы созданы заново!")
             return "0"
@@ -71,8 +70,8 @@ class Main:
             
     def show_collections(self):
         table = Table(title="Коллекции")
-        for name, style in zip(self.tables["Collections"].ru_column_names(), COLORS):
-            table.add_column(name, style=style)
+        for col, style in zip(self.tables["Collections"].columns, COLORS):
+            table.add_column(col.name, style=style)
 
         for record in self.tables["Collections"].all():
             table.add_row(*[str(x) for x in record])
@@ -80,9 +79,9 @@ class Main:
 
         menu = """Дальнейшие операции: 
     0 - возврат в главное меню;
-    3 - добавление нового человека;
-    4 - удаление человека;
-    5 - просмотр телефонов человека;
+    3 - добавление новой коллекции;
+    4 - удаление коллекции;
+    5 - просмотр экспонатов в коллекции;
     9 - выход."""
         print(menu)
 
@@ -105,7 +104,7 @@ class Main:
     def show_add_collection(self):
         data = []
 
-        max_len = 32 # TODO: remove 'magic' constant
+        max_len = self.tables["Collections"].columns_dict["name"].pgtype.length
         name = input("Введите название (1 - отмена): ").strip()
         if name == "1":
             return
@@ -118,7 +117,7 @@ class Main:
                 return
         data.append(name)
 
-        max_len = 512
+        max_len = self.tables["Collections"].columns_dict["description"].pgtype.length
         description = input("Введите описание (1 - отмена): ").strip()
         if description == "1":
             return
@@ -143,24 +142,24 @@ class Main:
 
         self.tables["Collections"].insert_one(data)
 
-    def show_phones_by_people(self):
-        if self.person_id == -1:
+    def show_items_by_collection(self, coll_id=None):
+        if coll_id is None:
             while True:
                 num = input("Укажите номер строки, в которой записана интересующая Вас персона (0 - отмена):")
                 while len(num.strip()) == 0:
                     num = input("Пустая строка. Повторите ввод! Укажите номер строки, в которой записана интересующая Вас персона (0 - отмена):")
                 if num == "0":
                     return "1"
-                person = PeopleTable().find_by_position(int(num))
-                if not person:
+                collection = self.tables["Collections"].find_by_position(int(num))
+                if not collection:
                     print("Введено число, неудовлетворяющее количеству людей!")
                 else:
-                    self.person_id = int(person[1])
-                    self.person_obj = person
+                    coll_id = int(collection[0])
+                    obj = collection
                     break
         print("Выбран человек: " + self.person_obj[2] + " " + self.person_obj[0] + " " + self.person_obj[3])
         print("Телефоны:")
-        lst = PhonesTable().all_by_person_id(self.person_id)
+        lst = self.tables["Items"].all_by_coll_id(coll_id)
         for i in lst:
             print(i[1])
         menu = """Дальнейшие операции:

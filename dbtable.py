@@ -1,28 +1,52 @@
+from dataclasses import dataclass
 from dbconnection import *
+from pgtypes import *
+
+@dataclass
+class Column:
+    name: str
+    ru_name: str | None
+    pgtype: PgType
+    constraints: str
+
+    def __init__(self, name, pgtype, constraints="", ru_name=None):
+        self.name = name
+        self.pgtype = pgtype
+        self.constraints = constraints
+        self.ru_name = ru_name
+
+    def __str__(self) -> str:
+        return " ".join([self.name, self.pgtype, self.constraints])
 
 class DbTable:
-    dbconn = None
+    name: str = "table"
+    dbconn: DbConnection | None = None
+    columns: list[Column] = [Column('test', SimplePgType.INTEGER, 'primary key', ru_name='Тест')]
+    _columns_dict: dict[str, Column] = {}
 
-    def __init__(self):
-        return
+    @property
+    def columns_dict(self) -> dict[str, Column]:
+        if len(self._columns_dict) == 0:
+            for col in self.columns:
+                self._columns_dict[col.name] = col
+        return self._columns_dict 
 
     def table_name(self):
-        return self.dbconn.prefix + "table"
+        if self.dbconn is None:
+            raise ValueError("DbConnection should be setted!")
+        return self.dbconn.prefix + self.name
 
-    def columns(self):
-        return {"test": ["integer", "PRIMARY KEY"]}
-
-    def column_names(self):
-        return sorted(self.columns().keys(), key = lambda x: x)
+    def column_names(self) -> list[str]:
+        return [col.name for col in self.columns]
 
     def ru_column_names(self):
-        raise NotImplementedError("Ru column names should be implemented!")
+        return [col.ru_name for col in self.columns]
 
     def primary_key(self):
         return ['id']
 
     def column_names_without_id(self):
-        res = sorted(self.columns().keys(), key = lambda x: x)
+        res = self.column_names()
         if 'id' in res:
             res.remove('id')
         return res
@@ -31,21 +55,25 @@ class DbTable:
         return []
 
     def create(self):
-        sql = "CREATE TABLE " + self.table_name() + "("
-        arr = [k + " " + " ".join(v) for k, v in sorted(self.columns().items(), key = lambda x: x[0])]
+        sql = "CREATE TABLE IF NOT EXISTS" + self.table_name() + "("
+        arr = [str(col) for col in self.columns]
         sql += ", ".join(arr + self.table_constraints())
         sql += ")"
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         self.dbconn.conn.commit()
-        return
 
     def drop(self):
         sql = "DROP TABLE IF EXISTS " + self.table_name()
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         self.dbconn.conn.commit()
-        return
+
+    def truncate(self, restart_id=False, cascade=False):
+        sql = f"TRUNCATE {self.table_name()} {'RESTART IDENTITY' if restart_id else ''} {'CASCADE' if cascade else ''}"
+        cur = self.dbconn.cursor()
+        cur.execute(sql)
+        self.dbconn.conn.commit()
 
     def insert_one(self, vals):
         for i in range(0, len(vals)):
@@ -59,7 +87,6 @@ class DbTable:
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         self.dbconn.conn.commit()
-        return
 
     def first(self):
         sql = "SELECT * FROM " + self.table_name()

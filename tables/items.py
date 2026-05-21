@@ -1,26 +1,23 @@
 from dbtable import *
 
 class Items(DbTable):
-    def table_name(self):
-        return self.dbconn.prefix + '"Items"'
+    name = '"Items"'
+    columns = [
+        Column("id", SimplePgType.SERIAL, "PRIMARY KEY", ru_name="№"),
+        Column("name", Varchar(64), "NOT NULL", ru_name="Название"),
+        Column("description", SimplePgType.TEXT, ru_name="Описание"),
+        Column("insurance", SimplePgType.NUMERIC, "CHECK (insurance >= 0)", ru_name="Страховая стоимость"),
+        Column("century", SimplePgType.INTEGER, ru_name="Век"),
+        Column("collection_id", SimplePgType.INTEGER, ru_name="№ коллекции"),
+        Column("hall_id", SimplePgType.INTEGER, ru_name="№ зала"),
+        Column("height", SimplePgType.DOUBLE_PRECISION, "CHECK (height >= 0)", ru_name="Высота"),
+        Column("width", SimplePgType.DOUBLE_PRECISION, "CHECK (width >= 0)", ru_name="Ширина"),
+        Column("length", SimplePgType.DOUBLE_PRECISION, "CHECK (length >= 0)", ru_name="Длина"),
+        Column("temperature", SimplePgType.DOUBLE_PRECISION, ru_name="Температура"),
+        Column("wetness", SimplePgType.DOUBLE_PRECISION, "CHECK (wetness >= 0)", ru_name="Влажность"),
+        Column("safety_level", SimplePgType.INTEGER, ru_name="Уровень охранения")
+    ]
 
-    def columns(self):
-        return {
-            "id": ["serial", "PRIMARY KEY"],
-            "name": ["varchar(64)", "NOT NULL"],
-            "description": ["text"],
-            "insurance": ["numeric", "CHECK (insurance >= 0)"],
-            "century": ["integer"],
-            "collection_id": ["integer"],
-            "hall_id": ["integer"],
-            "height": ["double precision", "CHECK (height >= 0)"],
-            "width": ["double precision", "CHECK (width >= 0)"],
-            "length": ["double precision", 'CHECK (length >= 0)'],
-            "temperature": ["double precision"],
-            "wetness": ["double precision", 'CHECK (wetness >= 0)'],
-            "safety_level": ["integer"]
-        }
-    
     def primary_key(self):
         return ['id']
 
