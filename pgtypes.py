@@ -9,7 +9,7 @@ class Varchar(PgType):
         self.length = length
 
     def __str__(self):
-        return f"varchar({self.length})"
+        return f"VARCHAR({self.length})"
 
 class SimplePgType(PgType, Enum):
     INTEGER = "integer"

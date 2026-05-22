@@ -16,7 +16,7 @@ class Column:
         self.ru_name = ru_name
 
     def __str__(self) -> str:
-        return " ".join([self.name, self.pgtype, self.constraints])
+        return " ".join([self.name, str(self.pgtype), self.constraints])
 
 class DbTable:
     name: str = "table"
@@ -55,7 +55,7 @@ class DbTable:
         return []
 
     def create(self):
-        sql = "CREATE TABLE IF NOT EXISTS" + self.table_name() + "("
+        sql = "CREATE TABLE IF NOT EXISTS "+ self.table_name() + "("
         arr = [str(col) for col in self.columns]
         sql += ", ".join(arr + self.table_constraints())
         sql += ")"

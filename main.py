@@ -21,12 +21,8 @@ class Main:
     def __init__(self):
         DbTable.dbconn = self.connection
         self.tables: dict[str, DbTable] = {
-            'Halls':  Halls(),
             'Collections': Collections(),
-            'Hazard': Hazard(),
-            'Items': Items(),
-            'Prices': Prices(),
-            'PricesXCollections': PricesXCollections(),
+            'Items': Items()
         }
         
 
@@ -72,7 +68,7 @@ class Main:
     def show_collections(self):
         table = Table(title="Коллекции")
         for col, style in zip(self.tables["Collections"].columns, COLORS):
-            table.add_column(col.name, style=style)
+            table.add_column(col.ru_name, style=style)
 
         for record in self.tables["Collections"].all():
             table.add_row(*[str(x) for x in record])
@@ -193,6 +189,7 @@ class Main:
         return self.read_next_step()
 
     def main_cycle(self):
+        self.db_init()
         current_menu = "0"
         next_step = None
         while(current_menu != "9"):
