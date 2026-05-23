@@ -211,18 +211,11 @@ class Main:
         lst = self.tables["Items"].all_by_coll_id(num)
         for i in lst:
             print(i[1])
-        menu = """Дальнейшие операции:
-    0 - возврат в главное меню;
-    1 - возврат в просмотр коллекций;
-    6 - добавление нового экспоната;
-    7 - удаление экспоната;
-    9 - выход."""
-        print(menu)
-        return self.read_next_step()
+        return "3"
 
     def show_items_menu(self):
         menu = """Действия с экспонатами:
-    0 - возврат в главное меню;
+    0 - перейти в меню коллекций
     1 - список экспонатов по залу;
     2 - добавление новых экспонатов в зал;
     3 - удаление экспонатов из зала
@@ -235,8 +228,7 @@ class Main:
         elif next_step == "9":
             return "9"
         elif next_step == "1":
-            self.show_items_by_collection()
-            return "3"
+            return self.show_items_by_collection()
         elif next_step == "2":
             print("тоже не реализован(")
             return "3"
@@ -249,7 +241,6 @@ class Main:
         current_menu = "0"
         next_step = None
         while(current_menu != "9"):
-            print(current_menu)
             if current_menu == "0":
                 self.show_main_menu()
                 next_step = self.read_next_step()
