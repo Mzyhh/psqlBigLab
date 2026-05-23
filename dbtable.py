@@ -74,8 +74,6 @@ class DbTable:
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         self.dbconn.conn.commit()
-
-
     
     def delete_by_id(self, id):
         try:
@@ -89,6 +87,24 @@ class DbTable:
         except Exception as e:
             self.dbconn.conn.rollback()
             raise e
+        
+    def edit_by_id(self, id_val, vals):
+        cols = self.column_names_without_id()
+        set_clause = ", ".join([f"{col} = %s" for col in cols])
+
+        # UPDATE public."Collections" SET name = %s, description = %s, start = %s, "end" = %s WHERE id = %s
+        sql = f"UPDATE {self.table_name()} SET {set_clause} WHERE id = %s"
+        
+        cur = self.dbconn.conn.cursor()
+
+        try:
+            params = list(vals) + [id_val]
+            cur.execute(sql, params)
+            self.dbconn.conn.commit()
+        except Exception as e:
+            self.dbconn.conn.rollback()
+            print('Не удалось обновить: неправильный формат ввода или запись не найдена')
+            return
 
     def find_by_id(self, id):
         try:

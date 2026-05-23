@@ -78,6 +78,7 @@ class Main:
     3 - добавление новой коллекции;
     4 - удаление коллекции;
     5 - просмотр экспонатов в коллекции;
+    6 - редактирование коллекции
     9 - выход."""
         print(menu)
 
@@ -94,10 +95,27 @@ class Main:
                 self.tables["Collections"].delete_by_id(n)
                 break
             except Exception as e:
-                print(f'Ошибка удаления: {e}')
                 print('Несуществующий идентификатор')
 
         return "1"
+    
+    def edit_collection(self):
+        data = []
+        id = input("Введите id коллекции, которую хотите изменить")
+
+        for col_name in self.tables["Collections"].column_names_without_id():
+            col = self.tables["Collections"].columns_dict[col_name]
+            while True:
+                
+                value = input(f"Введите значение поля {col.ru_name} (1 - отмена)").strip()
+                if value == "1":
+                    return
+                try:
+                    break
+                except Exception as e:
+                    print("Попробуйте еще раз.")
+            data.append(value)
+        self.tables["Collections"].edit_by_id(id, data)
 
 
     def after_show_collections(self, next_step):
@@ -105,11 +123,14 @@ class Main:
             if next_step == "4":
                 self.remove_collection()
                 return "1"
-            elif next_step == "6" or next_step == "7":
+            elif next_step == "7":
                 print("Пока не реализовано!")
                 next_step = "5"
             elif next_step == "5":
                 next_step = self.show_items_by_collection()
+            elif next_step == "6":
+                self.edit_collection()
+                return "1"
             elif next_step != "0" and next_step != "9" and next_step != "3":
                 print("Выбрано неверное число! Повторите ввод!")
                 return "1"
