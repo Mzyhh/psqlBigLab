@@ -75,15 +75,20 @@ class DbTable:
         cur.execute(sql)
         self.dbconn.conn.commit()
 
+
+    
     def delete_by_id(self, id):
         try:
-            sql = f"DELETE FROM {self.table_name()} WHERE id = {id};"
             cur = self.dbconn.conn.cursor()
-            cur.execute(sql)
+            sql = f"DELETE FROM {self.table_name()} WHERE id = %s;"
+            cur.execute(sql, (id,))
             self.dbconn.conn.commit()
+            
+            if cur.rowcount == 0:
+                raise ValueError(f"Запись с id={id} не найдена в таблице {self.table_name()}")
         except Exception as e:
             self.dbconn.conn.rollback()
-            raise e 
+            raise e
 
     def find_by_id(self, id):
         try:

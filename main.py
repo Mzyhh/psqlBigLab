@@ -22,7 +22,7 @@ class Main:
         DbTable.dbconn = self.connection
         self.tables: dict[str, DbTable] = {
             'Collections': Collections(),
-            'Items': Items()
+            'Items': Items(),
         }
 
     def db_init(self):
@@ -94,6 +94,7 @@ class Main:
                 self.tables["Collections"].delete_by_id(n)
                 break
             except Exception as e:
+                print(f'Ошибка удаления: {e}')
                 print('Несуществующий идентификатор')
 
         return "1"
@@ -197,7 +198,6 @@ class Main:
         print(menu)
         return self.read_next_step()
 
-        return self.read_next_step()
 
     def main_cycle(self):
         self.db_init()
