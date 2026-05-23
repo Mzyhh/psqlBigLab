@@ -45,6 +45,7 @@ class Main:
 Основное меню (выберите цифру в соответствии с необходимым действием): 
     1 - просмотр коллекций;
     2 - сброс и инициализация таблиц;
+    3 - действия с экспонатами;
     9 - выход."""
         print(menu)
         return
@@ -58,7 +59,7 @@ class Main:
             self.db_insert_somethings()
             print("Таблицы созданы заново!")
             return "0"
-        elif next_step != "1" and next_step != "9":
+        elif next_step not in ["1", "3", "9"]:
             print("Выбрано неверное число! Повторите ввод!")
             return "0"
         else:
@@ -193,7 +194,7 @@ class Main:
     def show_items_by_collection(self):
         obj = None
         while True:
-            num = input("Укажите номер строки, в которой записана интересующая Вас персона (0 - отмена):")
+            num = input("Укажите номер коллекции, в которой вы хотите посмотреть экспонаты (0 - отмена):")
             while len(num.strip()) == 0:
                 num = input("Пустая строка. Повторите ввод! Укажите номер строки, в которой записана интересующая Вас персона (0 - отмена):")
             if num == "0":
@@ -219,12 +220,36 @@ class Main:
         print(menu)
         return self.read_next_step()
 
+    def show_items_menu(self):
+        menu = """Действия с экспонатами:
+    0 - возврат в главное меню;
+    1 - список экспонатов по залу;
+    2 - добавление новых экспонатов в зал;
+    3 - удаление экспонатов из зала
+    9 - выход."""
+        print(menu)
+
+    def after_items_menu(self, next_step):
+        if next_step == "0":
+            return "0"
+        elif next_step == "9":
+            return "9"
+        elif next_step == "1":
+            self.show_items_by_collection()
+            return "3"
+        elif next_step == "2":
+            print("тоже не реализован(")
+            return "3"
+        else:
+            print("Выбрано неверное число! Повторите ввод!")
+            return "3"
 
     def main_cycle(self):
         self.db_init()
         current_menu = "0"
         next_step = None
         while(current_menu != "9"):
+            print(current_menu)
             if current_menu == "0":
                 self.show_main_menu()
                 next_step = self.read_next_step()
@@ -236,8 +261,9 @@ class Main:
             elif current_menu == "2":
                 self.show_main_menu()
             elif current_menu == "3":
-                self.show_add_collection()
-                current_menu = "1"
+                self.show_items_menu()
+                next_step = self.read_next_step()
+                current_menu = self.after_items_menu(next_step)
         print("До свидания!")    
         return
 
