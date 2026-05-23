@@ -124,10 +124,8 @@ class Main:
                 if value == "1":
                     return
                 try:
-                    value = col.pgtype.format(value)
                     break
                 except Exception as e:
-                    print(e, end=' ')
                     print("Попробуйте еще раз.")
             data.append(value)
         self.tables["Collections"].insert_one(data)

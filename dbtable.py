@@ -95,17 +95,20 @@ class DbTable:
             raise e 
 
     def insert_one(self, vals):
-        for i in range(0, len(vals)):
-            if type(vals[i]) == str:
-                vals[i] = "'" + vals[i] + "'"
-            else:
-                vals[i] = str(vals[i])
-        sql = "INSERT INTO " + self.table_name() + "("
-        sql += ", ".join(self.column_names_without_id()) + ") VALUES("
-        sql += ", ".join(vals) + ")"
+        cols = ", ".join(self.column_names_without_id())
+        placeholders = ", ".join(["%s"] * len(vals))
+        sql = f"INSERT INTO {self.table_name()} ({cols}) VALUES ({placeholders})"
+        
         cur = self.dbconn.conn.cursor()
-        cur.execute(sql)
-        self.dbconn.conn.commit()
+
+        try:
+            cur.execute(sql, vals) # драйвер сам всё делает
+            self.dbconn.conn.commit()
+        except Exception as e:
+            self.dbconn.conn.rollback()
+            print('Не удалось добавить: неправильный формат ввода')
+            return
+        
 
     def first(self):
         sql = "SELECT * FROM " + self.table_name()
@@ -134,4 +137,3 @@ class DbTable:
             if row is None:
                 break
             yield row
-        
