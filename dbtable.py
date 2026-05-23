@@ -20,7 +20,7 @@ class Column:
 
 class DbTable:
     name: str = "table"
-    dbconn: DbConnection | None = None
+    dbconn: DbConnection = None
     columns: list[Column] = [Column('test', SimplePgType.INTEGER, 'primary key', ru_name='Тест')]
     _columns_dict: dict[str, Column] = {}
 

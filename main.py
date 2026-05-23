@@ -2,7 +2,7 @@
 # sys.path.append('tables')
 from rich.console import Console
 from rich.table import Table
-import numpy as np
+from itertools import cycle
 
 from project_config import *
 from dbconnection import *
@@ -24,7 +24,6 @@ class Main:
             'Collections': Collections(),
             'Items': Items()
         }
-        
 
     def db_init(self):
         for table in self.tables.values():
@@ -67,7 +66,7 @@ class Main:
             
     def show_collections(self):
         table = Table(title="Коллекции")
-        for col, style in zip(self.tables["Collections"].columns, COLORS):
+        for col, style in zip(self.tables["Collections"].columns, cycle(COLORS)):
             table.add_column(col.ru_name, style=style)
 
         for record in self.tables["Collections"].all():
@@ -118,44 +117,58 @@ class Main:
 
     def show_add_collection(self):
         data = []
-
-        max_len = self.tables["Collections"].columns_dict["name"].pgtype.length
-        name = input("Введите название (1 - отмена): ").strip()
-        if name == "1":
-            return
-        while (isempty := len(name) == 0) or len(name) > max_len:
-            if isempty:
-                name = input("Имя не может быть пустым! Введите имя заново (1 - отмена):").strip()
-            else:
-                name = input(f"Слишком длинное имя (максимум {max_len} символа) (1 - отмена):").strip()
-            if name == "1":
-                return
-        data.append(name)
-
-        max_len = self.tables["Collections"].columns_dict["description"].pgtype.length
-        description = input("Введите описание (1 - отмена): ").strip()
-        if description == "1":
-            return
-        while (isempty := len(description) == 0) or len(description) > max_len:
-            if isempty:
-                description = input("Фамилия не может быть пустой! Введите фамилию заново (1 - отмена):").strip()
-            else:
-                description = input(f"Слишком длинное описание (максимум {max_len} символов (1 - отмена)):").strip()
-            if description == "1":
-                return
-        data.append(description)
-
-        start_time = input("Введите дату начала показа коллекции (1 - отмена): ").strip()
-        if start_time == "1":
-            return
-        data.append(start_time)
-
-        end_time = input("Введите дату окончания показа коллекции (1 - отмена): ").strip()
-        if end_time == "1":
-            return
-        data.append(end_time)
-
+        for col_name in self.tables["Collections"].column_names_without_id():
+            col = self.tables["Collections"].columns_dict[col_name]
+            while True:
+                value = input(f"Введите значение поля {col.ru_name} (1 - отмена)").strip()
+                if value == "1":
+                    return
+                try:
+                    value = col.pgtype.format(value)
+                    break
+                except Exception as e:
+                    print(e, end=' ')
+                    print("Попробуйте еще раз.")
+            data.append(value)
         self.tables["Collections"].insert_one(data)
+
+#        max_len = self.tables["Collections"].columns_dict["name"].pgtype.length
+#        name = input("Введите название (1 - отмена): ").strip()
+#        if name == "1":
+#            return
+#        while (isempty := len(name) == 0) or len(name) > max_len:
+#            if isempty:
+#                name = input("Имя не может быть пустым! Введите имя заново (1 - отмена):").strip()
+#            else:
+#                name = input(f"Слишком длинное имя (максимум {max_len} символа) (1 - отмена):").strip()
+#            if name == "1":
+#                return
+#        data.append(name)
+#
+#        max_len = self.tables["Collections"].columns_dict["description"].pgtype.length
+#        description = input("Введите описание (1 - отмена): ").strip()
+#        if description == "1":
+#            return
+#        while (isempty := len(description) == 0) or len(description) > max_len:
+#            if isempty:
+#                description = input("Фамилия не может быть пустой! Введите фамилию заново (1 - отмена):").strip()
+#            else:
+#                description = input(f"Слишком длинное описание (максимум {max_len} символов (1 - отмена)):").strip()
+#            if description == "1":
+#                return
+#        data.append(description)
+#
+#        start_time = input("Введите дату начала показа коллекции (1 - отмена): ").strip()
+#        if start_time == "1":
+#            return
+#        data.append(start_time)
+#
+#        end_time = input("Введите дату окончания показа коллекции (1 - отмена): ").strip()
+#        if end_time == "1":
+#            return
+#        data.append(end_time)
+#
+#        self.tables["Collections"].insert_one(data)
 
     def show_items_by_collection(self):
         obj = None
