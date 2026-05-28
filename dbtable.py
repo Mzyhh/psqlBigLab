@@ -22,14 +22,11 @@ class DbTable:
     name: str = "table"
     dbconn: DbConnection = None
     columns: list[Column] = [Column('test', SimplePgType.INTEGER, 'primary key', ru_name='Тест')]
-    _columns_dict: dict[str, Column] = {}
+
 
     @property
     def columns_dict(self) -> dict[str, Column]:
-        if len(self._columns_dict) == 0:
-            for col in self.columns:
-                self._columns_dict[col.name] = col
-        return self._columns_dict 
+        return {col.name: col for col in self.columns}
 
     def table_name(self):
         if self.dbconn is None:
