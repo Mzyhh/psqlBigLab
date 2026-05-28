@@ -11,6 +11,18 @@ from tables import *
 
 COLORS = ["magenta", "green", "yellow", "red", "blue"]
 
+DEBUG = True
+
+MAIN_MENU = "0"
+WATCH_COLL = "1"
+RESTART_DB = "2"
+NEW_COLL = "3"
+DEL_COLL = "4"
+WATCH_ITEMS = "5"
+EDIT_COLL = "6"
+NEW_ITEM = "7"
+DEL_ITEM = "8"
+EXIT = "9"
 
 class Main:
 
@@ -43,27 +55,9 @@ class Main:
     def read_next_step(self):
         return input("=> ").strip()
 
-    def show_main_menu(self):
-        menu = """Добро пожаловать! 
-Основное меню (выберите цифру в соответствии с необходимым действием): 
-    1 - просмотр коллекций;
-    2 - сброс и инициализация таблиц;
-    9 - выход."""
-        print(menu)
-        return
 
-    def after_main_menu(self, next_step):
-        if next_step == "2":
-            self.db_drop()
-            self.db_insert_somethings()
-            print("Таблицы созданы заново!")
-            return "0"
-        elif next_step not in ["1", "3", "9"]:
-            print("Выбрано неверное число! Повторите ввод!")
-            return "0"
-        else:
-            return next_step
-            
+    # Collection stuff
+
     def show_collections(self):
         table = Table(title="Коллекции")
         for col, style in zip(self.tables["Collections"].columns, cycle(COLORS)):
@@ -73,13 +67,13 @@ class Main:
             table.add_row(*[str(x) for x in record])
         self.console.print(table)
 
-        menu = """Дальнейшие операции: 
-    0 - возврат в главное меню;
-    3 - добавление новой коллекции;
-    4 - удаление коллекции;
-    5 - просмотр экспонатов в коллекции;
-    6 - редактирование коллекции
-    9 - выход."""
+        menu = f"""Дальнейшие операции: 
+    {MAIN_MENU} - возврат в главное меню;
+    {NEW_COLL} - добавление новой коллекции;
+    {DEL_COLL} - удаление коллекции;
+    {WATCH_ITEMS} - просмотр экспонатов в коллекции;
+    {EDIT_COLL} - редактирование коллекции
+    {EXIT} - выход."""
         print(menu)
 
     def remove_collection(self):
@@ -87,7 +81,7 @@ class Main:
             try:
                 n = int(input("Введите порядковый номер коллекции (-1 - для отмены): "))
                 if n == -1:
-                    return "1"
+                    return WATCH_COLL
             except Exception as e:
                 print("Ну совсем плохой ввод, попробуйте еще раз!") 
 
@@ -97,7 +91,7 @@ class Main:
             except Exception as e:
                 print('Несуществующий идентификатор')
 
-        return "1"
+        return WATCH_COLL
     
     def edit_collection(self):
         data = []
@@ -107,8 +101,8 @@ class Main:
             col = self.tables["Collections"].columns_dict[col_name]
             while True:
                 
-                value = input(f"Введите значение поля {col.ru_name} (1 - отмена): ").strip()
-                if value == "1":
+                value = input(f"Введите значение поля {col.ru_name} (-1 - отмена): ").strip()
+                if value == "-1":
                     return
                 try:
                     break
@@ -117,35 +111,13 @@ class Main:
             data.append(value)
         self.tables["Collections"].edit_by_id(id, data)
 
-    def after_show_collections(self, next_step):
-        while True:
-            if next_step == "4":
-                self.remove_collection()
-                return "1"
-            elif next_step == "7":
-                print("Пока не реализовано!")
-                next_step = "5"
-            elif next_step == "5":
-                coll_id = self.show_items_by_collection()
-                self.show_items_menu()
-                next_step = self.read_next_step()
-                next_step = self.after_items_menu(coll_id, next_step)
-            elif next_step == "6":
-                self.edit_collection()
-                return "1"
-            elif next_step != "0" and next_step != "9" and next_step != "1":
-                print("Выбрано неверное число! Повторите ввод!")
-                return "1"
-            else:
-                return next_step
-
     def show_add_collection(self):
         data = []
         for col_name in self.tables["Collections"].column_names_without_id():
             col = self.tables["Collections"].columns_dict[col_name]
             while True:
-                value = input(f"Введите значение поля {col.ru_name} (1 - отмена): ").strip()
-                if value == "1":
+                value = input(f"Введите значение поля {col.ru_name} (-1 - отмена): ").strip()
+                if value == "-1":
                     return
                 try:
                     value = col.pgtype.format(value)
@@ -156,30 +128,34 @@ class Main:
             data.append(value)
         self.tables["Collections"].insert_one(data)
 
-    def show_items_by_collection(self):
+    def get_collection(self):
+        """Ask user for collection id and returns object (or None if user canceled input)"""
         obj = None
         while True:
-            num = input("Укажите номер коллекции, в которой вы хотите посмотреть экспонаты (0 - отмена):")
+            num = input("Укажите номер коллекции, в которой вы хотите посмотреть экспонаты (-1 - отмена): ")
             while len(num.strip()) == 0:
-                num = input("Пустая строка. Повторите ввод! Укажите номер строки, в которой записана интересующая Вас персона (0 - отмена):")
-            if num == "0":
-                return "1"
+                num = input("Пустая строка. Повторите ввод! Укажите номер строки, в которой записана интересующая Вас коллекция (-1 - отмена):").strip()
+            if num == "-1":
+                return None, -1
             try:
-                collection = self.tables["Collections"].find_by_id(int(num))
-                obj = collection
+                obj = self.tables["Collections"].find_by_id(int(num))
+                if obj is None:
+                    raise ValueError("Bad id")
                 break
             except Exception as e:
+                if DEBUG:
+                    print("DEBUG MESSAGE: " + str(e))
                 print("Неверный порядковый номер!")
+        return obj
 
-        table = Table(title=f"Экспонаты коллекции {obj[1]}")
+    def show_items_by_collection(self, collection):
+        table = Table(title=f"Экспонаты коллекции {collection[1]}")
         for col, style in zip(self.tables["Items"].columns, cycle(COLORS)):
             table.add_column(col.ru_name, style=style)
 
-        for record in self.tables["Items"].all_by_coll_id(num):
+        for record in self.tables["Items"].all_by_coll_id(str(collection[0])):
             table.add_row(*[str(x) for x in record])
         self.console.print(table)
-
-        return num
 
     def add_new_item(self, coll_id):
         skip_fields = set(["hall_id", "safety_level"]) 
@@ -187,14 +163,14 @@ class Main:
         for col_name in self.tables["Items"].column_names_without_id():
             col = self.tables["Items"].columns_dict[col_name]
             if col.name in skip_fields:
-                data.append("1")
+                data.append(WATCH_COLL)
                 continue
             if col.name == "collection_id":
                 data.append(str(coll_id))
                 continue
             while True:
                 value = input(f"Введите значение поля {col.ru_name} (1 - отмена): ").strip()
-                if value == "1":
+                if value == WATCH_COLL:
                     return
                 try:
                     value = col.pgtype.format(value)
@@ -204,42 +180,103 @@ class Main:
             data.append(value)
         self.tables["Items"].insert_one(data)
 
-    def show_items_menu(self):
-        menu = """Действия с экспонатами:
-    1 - перейти в меню коллекций
-    2 - добавление новых экспонатов в коллекцию;
-    3 - удаление экспонатов из коллекции
-    9 - выход."""
+    def remove_item(self):
+        while True:
+            try:
+                n = int(input("Введите номер экспоната (-1 - для отмены): "))
+                if n == -1:
+                    break
+            except Exception as e:
+                print("Ну совсем плохой ввод, попробуйте еще раз!") 
+                continue
+
+            try:
+                self.tables["Items"].delete_by_id(n)
+                break
+            except Exception as e:
+                if DEBUG:
+                    print("DEBUG: ", str(e))
+                print('Несуществующий номер')
+
+    def show_main_menu(self):
+        menu = f"""Добро пожаловать! 
+Основное меню (выберите цифру в соответствии с необходимым действием): 
+    {WATCH_COLL} - просмотр коллекций
+    {RESTART_DB} - сброс и инициализация таблиц;
+    {EXIT} - выход."""
         print(menu)
+        return
 
-    def after_items_menu(self, coll_id, next_step):
-        if next_step == "1" or next_step == "9":
-            return next_step 
-        elif next_step == "2":
-            self.add_new_item(coll_id)
-            return "3"
-        else:
+    def after_show_collections(self, next_step):
+        while True:
+            if next_step == DEL_COLL:
+                self.remove_collection()
+                return WATCH_COLL
+            elif next_step == NEW_COLL:
+                self.show_add_collection()
+                next_step = WATCH_COLL
+            elif next_step == WATCH_ITEMS:
+                collection = self.get_collection()
+                if collection is None:
+                    next_step = WATCH_COLL
+                else:
+                    next_step = self.items_menu(collection)
+            elif next_step == EDIT_COLL:
+                self.edit_collection()
+                return WATCH_COLL
+            elif next_step != MAIN_MENU and next_step != EXIT and next_step != WATCH_COLL:
+                print("Выбрано неверное число! Повторите ввод!")
+                return WATCH_COLL
+            else:
+                return next_step
+
+    def items_menu(self, collection):
+        menu = f"""Действия с экспонатами:
+    {WATCH_COLL} - перейти в меню коллекций
+    {NEW_ITEM} - добавление новых экспонатов в коллекцию;
+    {DEL_ITEM} - удаление экспонатов из коллекции
+    {EXIT} - выход."""
+        while True:
+            self.show_items_by_collection(collection)
+            print(menu)
+            next_step = self.read_next_step()
+
+            if next_step == NEW_ITEM:
+                self.add_new_item(str(collection[0]))
+            elif next_step == DEL_ITEM:
+                self.remove_item()
+            elif next_step in "19":
+                return next_step
+            else:
+                print("Выбрано неверное число! Повторите ввод!")
+
+    def after_main_menu(self, next_step):
+        if next_step == RESTART_DB:
+            self.db_drop()
+            self.db_insert_somethings()
+            print("Таблицы созданы заново!")
+            return MAIN_MENU
+        elif next_step not in [WATCH_COLL, NEW_COLL, EXIT]:
             print("Выбрано неверное число! Повторите ввод!")
-            return "3"
-
+            return MAIN_MENU
+        else:
+            return next_step
+            
     def main_cycle(self):
         self.db_init()
-        current_menu = "0"
+        current_menu = MAIN_MENU
         next_step = None
-        while(current_menu != "9"):
-            if current_menu == "0":
+        while(current_menu != EXIT):
+            if current_menu == MAIN_MENU:
                 self.show_main_menu()
                 next_step = self.read_next_step()
                 current_menu = self.after_main_menu(next_step)
-            elif current_menu == "1":
+            elif current_menu == WATCH_COLL:
                 self.show_collections()
                 next_step = self.read_next_step()
                 current_menu = self.after_show_collections(next_step)
-            elif current_menu == "2":
+            elif current_menu == RESTART_DB:
                 self.show_main_menu()
-            elif current_menu == "3":
-                self.show_add_collection()
-                current_menu = "1"
         print("До свидания!")    
         return
 
