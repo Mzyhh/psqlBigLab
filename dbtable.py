@@ -105,9 +105,9 @@ class DbTable:
 
     def find_by_id(self, id):
         try:
-            sql = f"SELECT * FROM {self.table_name()} WHERE id = {id};"
+            sql = f"SELECT * FROM {self.table_name()} WHERE id = %s;"
             cur = self.dbconn.conn.cursor()
-            cur.execute(sql)
+            cur.execute(sql, id)
             return cur.fetchone()
         except Exception as e:
             raise e 

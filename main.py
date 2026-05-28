@@ -138,7 +138,7 @@ class Main:
             if num == "-1":
                 return None, -1
             try:
-                obj = self.tables["Collections"].find_by_id(int(num))
+                obj = self.tables["Collections"].find_by_id(num)
                 if obj is None:
                     raise ValueError("Bad id")
                 break
