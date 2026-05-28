@@ -37,7 +37,7 @@ class SimplePgType(PgType, Enum):
         try:
             if self in (SimplePgType.INTEGER, SimplePgType.SERIAL):
                 val = int(text)
-                return text
+                return str(text)
 
             elif self == SimplePgType.BOOLEAN:
                 if text.lower() in ('true', '1', 'yes'):

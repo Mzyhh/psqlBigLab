@@ -40,18 +40,17 @@ class Main:
         for table in self.tables.values():
             table.truncate(restart_id=True, cascade=True)
 
+    def read_next_step(self):
+        return input("=> ").strip()
+
     def show_main_menu(self):
         menu = """Добро пожаловать! 
 Основное меню (выберите цифру в соответствии с необходимым действием): 
     1 - просмотр коллекций;
     2 - сброс и инициализация таблиц;
-    3 - действия с экспонатами;
     9 - выход."""
         print(menu)
         return
-
-    def read_next_step(self):
-        return input("=> ").strip()
 
     def after_main_menu(self, next_step):
         if next_step == "2":
@@ -102,13 +101,13 @@ class Main:
     
     def edit_collection(self):
         data = []
-        id = input("Введите id коллекции, которую хотите изменить")
+        id = input("Введите № коллекции, которую хотите изменить: ")
 
         for col_name in self.tables["Collections"].column_names_without_id():
             col = self.tables["Collections"].columns_dict[col_name]
             while True:
                 
-                value = input(f"Введите значение поля {col.ru_name} (1 - отмена)").strip()
+                value = input(f"Введите значение поля {col.ru_name} (1 - отмена): ").strip()
                 if value == "1":
                     return
                 try:
@@ -117,7 +116,6 @@ class Main:
                     print("Попробуйте еще раз.")
             data.append(value)
         self.tables["Collections"].edit_by_id(id, data)
-
 
     def after_show_collections(self, next_step):
         while True:
@@ -128,11 +126,14 @@ class Main:
                 print("Пока не реализовано!")
                 next_step = "5"
             elif next_step == "5":
-                next_step = self.show_items_by_collection()
+                coll_id = self.show_items_by_collection()
+                self.show_items_menu()
+                next_step = self.read_next_step()
+                next_step = self.after_items_menu(coll_id, next_step)
             elif next_step == "6":
                 self.edit_collection()
                 return "1"
-            elif next_step != "0" and next_step != "9" and next_step != "3":
+            elif next_step != "0" and next_step != "9" and next_step != "1":
                 print("Выбрано неверное число! Повторите ввод!")
                 return "1"
             else:
@@ -143,53 +144,17 @@ class Main:
         for col_name in self.tables["Collections"].column_names_without_id():
             col = self.tables["Collections"].columns_dict[col_name]
             while True:
-                value = input(f"Введите значение поля {col.ru_name} (1 - отмена)").strip()
+                value = input(f"Введите значение поля {col.ru_name} (1 - отмена): ").strip()
                 if value == "1":
                     return
                 try:
+                    value = col.pgtype.format(value)
                     break
                 except Exception as e:
+                    print(str(e))
                     print("Попробуйте еще раз.")
             data.append(value)
         self.tables["Collections"].insert_one(data)
-
-#        max_len = self.tables["Collections"].columns_dict["name"].pgtype.length
-#        name = input("Введите название (1 - отмена): ").strip()
-#        if name == "1":
-#            return
-#        while (isempty := len(name) == 0) or len(name) > max_len:
-#            if isempty:
-#                name = input("Имя не может быть пустым! Введите имя заново (1 - отмена):").strip()
-#            else:
-#                name = input(f"Слишком длинное имя (максимум {max_len} символа) (1 - отмена):").strip()
-#            if name == "1":
-#                return
-#        data.append(name)
-#
-#        max_len = self.tables["Collections"].columns_dict["description"].pgtype.length
-#        description = input("Введите описание (1 - отмена): ").strip()
-#        if description == "1":
-#            return
-#        while (isempty := len(description) == 0) or len(description) > max_len:
-#            if isempty:
-#                description = input("Фамилия не может быть пустой! Введите фамилию заново (1 - отмена):").strip()
-#            else:
-#                description = input(f"Слишком длинное описание (максимум {max_len} символов (1 - отмена)):").strip()
-#            if description == "1":
-#                return
-#        data.append(description)
-#
-#        start_time = input("Введите дату начала показа коллекции (1 - отмена): ").strip()
-#        if start_time == "1":
-#            return
-#        data.append(start_time)
-#
-#        end_time = input("Введите дату окончания показа коллекции (1 - отмена): ").strip()
-#        if end_time == "1":
-#            return
-#        data.append(end_time)
-#
-#        self.tables["Collections"].insert_one(data)
 
     def show_items_by_collection(self):
         obj = None
@@ -206,31 +171,52 @@ class Main:
             except Exception as e:
                 print("Неверный порядковый номер!")
 
-        print("Выбрана коллекция: " + obj[1])
-        print("Экспонаты:")
-        lst = self.tables["Items"].all_by_coll_id(num)
-        for i in lst:
-            print(i[1])
-        return "3"
+        table = Table(title=f"Экспонаты коллекции {obj[1]}")
+        for col, style in zip(self.tables["Items"].columns, cycle(COLORS)):
+            table.add_column(col.ru_name, style=style)
+
+        for record in self.tables["Items"].all_by_coll_id(num):
+            table.add_row(*[str(x) for x in record])
+        self.console.print(table)
+
+        return num
+
+    def add_new_item(self, coll_id):
+        skip_fields = set(["hall_id", "safety_level"]) 
+        data = []
+        for col_name in self.tables["Items"].column_names_without_id():
+            col = self.tables["Items"].columns_dict[col_name]
+            if col.name in skip_fields:
+                data.append("1")
+                continue
+            if col.name == "collection_id":
+                data.append(str(coll_id))
+                continue
+            while True:
+                value = input(f"Введите значение поля {col.ru_name} (1 - отмена): ").strip()
+                if value == "1":
+                    return
+                try:
+                    value = col.pgtype.format(value)
+                    break
+                except Exception as e:
+                    print("Попробуйте еще раз.")
+            data.append(value)
+        self.tables["Items"].insert_one(data)
 
     def show_items_menu(self):
         menu = """Действия с экспонатами:
-    0 - перейти в меню коллекций
-    1 - список экспонатов по залу;
-    2 - добавление новых экспонатов в зал;
-    3 - удаление экспонатов из зала
+    1 - перейти в меню коллекций
+    2 - добавление новых экспонатов в коллекцию;
+    3 - удаление экспонатов из коллекции
     9 - выход."""
         print(menu)
 
-    def after_items_menu(self, next_step):
-        if next_step == "0":
-            return "0"
-        elif next_step == "9":
-            return "9"
-        elif next_step == "1":
-            return self.show_items_by_collection()
+    def after_items_menu(self, coll_id, next_step):
+        if next_step == "1" or next_step == "9":
+            return next_step 
         elif next_step == "2":
-            print("тоже не реализован(")
+            self.add_new_item(coll_id)
             return "3"
         else:
             print("Выбрано неверное число! Повторите ввод!")
@@ -252,9 +238,8 @@ class Main:
             elif current_menu == "2":
                 self.show_main_menu()
             elif current_menu == "3":
-                self.show_items_menu()
-                next_step = self.read_next_step()
-                current_menu = self.after_items_menu(next_step)
+                self.show_add_collection()
+                current_menu = "1"
         print("До свидания!")    
         return
 

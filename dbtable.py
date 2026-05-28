@@ -123,7 +123,7 @@ class DbTable:
         cur = self.dbconn.conn.cursor()
 
         try:
-            cur.execute(sql, vals) # драйвер сам всё делает
+            cur.execute(sql, vals)
             self.dbconn.conn.commit()
         except Exception as e:
             self.dbconn.conn.rollback()
