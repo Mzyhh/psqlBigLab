@@ -84,14 +84,26 @@ class DbTable:
         except Exception as e:
             self.dbconn.conn.rollback()
             raise e
+
+    # --- ДОБАВЛЕННЫЙ МЕТОД: Удаление по названию ---
+    def delete_by_name(self, name, name_col='name'):
+        try:
+            cur = self.dbconn.conn.cursor()
+            sql = f"DELETE FROM {self.table_name()} WHERE {name_col} = %s;"
+            cur.execute(sql, (name,))
+            self.dbconn.conn.commit()
+            
+            if cur.rowcount == 0:
+                raise ValueError(f"Запись с именем '{name}' не найдена в таблице {self.table_name()}")
+        except Exception as e:
+            self.dbconn.conn.rollback()
+            raise e
         
     def edit_by_id(self, id_val, vals):
         cols = self.column_names_without_id()
         set_clause = ", ".join([f"{col} = %s" for col in cols])
 
-        # UPDATE public."Collections" SET name = %s, description = %s, start = %s, "end" = %s WHERE id = %s
         sql = f"UPDATE {self.table_name()} SET {set_clause} WHERE id = %s"
-        
         cur = self.dbconn.conn.cursor()
 
         try:
@@ -112,11 +124,20 @@ class DbTable:
         except Exception as e:
             raise e 
 
+    # --- ДОБАВЛЕННЫЙ МЕТОД: Поиск по названию ---
+    def find_by_name(self, name, name_col='name'):
+        try:
+            sql = f"SELECT * FROM {self.table_name()} WHERE {name_col} = %s;"
+            cur = self.dbconn.conn.cursor()
+            cur.execute(sql, (name,))
+            return cur.fetchone()
+        except Exception as e:
+            raise e
+
     def insert_one(self, vals):
         cols = ", ".join(self.column_names_without_id())
         placeholders = ", ".join(["%s"] * len(vals))
         sql = f"INSERT INTO {self.table_name()} ({cols}) VALUES ({placeholders})"
-        
         cur = self.dbconn.conn.cursor()
 
         try:
@@ -151,7 +172,7 @@ class DbTable:
         cur = self.dbconn.conn.cursor()
         cur.execute(sql)
         while True:
-            row = cur.fetchone() # NOTE: think about fetchmany
+            row = cur.fetchone()
             if row is None:
                 break
             yield row

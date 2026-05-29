@@ -1,5 +1,3 @@
-# import sys
-# sys.path.append('tables')
 from rich.console import Console
 from rich.table import Table
 from itertools import cycle
@@ -12,7 +10,7 @@ from tables import *
 
 COLORS = ["magenta", "green", "yellow", "red", "blue"]
 
-DEBUG = True
+DEBUG = False
 
 MAIN_MENU = "0"
 WATCH_COLL = "1"
@@ -61,11 +59,21 @@ class Main:
 
     def show_collections(self):
         table = Table(title="Коллекции")
+        
+        # Скрываем колонку ID из заголовков
         for col, style in zip(self.tables["Collections"].columns, cycle(COLORS)):
+            if col.name == 'id':
+                continue
             table.add_column(col.ru_name, style=style)
 
+        # Скрываем ID из строк при выводе
         for record in self.tables["Collections"].all():
-            table.add_row(*[str(x) for x in record])
+            row_vals = []
+            for col, val in zip(self.tables["Collections"].columns, record):
+                if col.name != 'id':
+                    row_vals.append(str(val))
+            table.add_row(*row_vals)
+            
         self.console.print(table)
 
         menu = f"""Дальнейшие операции: 
@@ -79,32 +87,42 @@ class Main:
 
     def remove_collection(self):
         while True:
-            try:
-                n = int(input("Введите порядковый номер коллекции (-1 - для отмены): "))
-                if n == -1:
-                    return WATCH_COLL
-            except Exception as e:
-                print("Ну совсем плохой ввод, попробуйте еще раз!") 
+            name = input("Введите НАЗВАНИЕ коллекции для удаления (-1 - для отмены): ").strip()
+            if name == "-1":
+                return WATCH_COLL
+            if len(name) == 0:
+                print("Пустая строка. Повторите ввод!")
+                continue
 
             try:
-                self.tables["Collections"].delete_by_id(n)
+                # Удаляем по названию
+                self.tables["Collections"].delete_by_name(name)
                 break
             except Exception as e:
-                print('Несуществующий идентификатор')
+                if DEBUG:
+                    print("DEBUG: ", str(e))
+                print('Несуществующее название коллекции. Попробуйте еще раз.')
 
         return WATCH_COLL
     
     def edit_collection(self):
-        data = []
         collection = self.get_collection()
+        if collection is None:
+            return
 
-        for i, col in enumerate(self.tables["Collections"].columns[1:]):
+        data = []
+        # Проходим по всем колонкам, кроме id, сохраняя правильный индекс для подстановки старых значений
+        for col in self.tables["Collections"].columns:
+            if col.name == 'id':
+                continue
+            
+            idx = self.tables["Collections"].columns.index(col)
             while True:
                 value = input(f"Введите значение поля {col.ru_name} (-1 - отмена, пустая строка - оставить как есть): ").strip()
                 if value == "-1":
                     return
                 if len(value) == 0:
-                    value = str(collection[i+1])
+                    value = str(collection[idx])
                     break
 
                 try:
@@ -139,32 +157,44 @@ class Main:
         self.tables["Collections"].insert_one(data)
 
     def get_collection(self):
-        """Ask user for collection id and returns object (or None if user canceled input)"""
+        """Ask user for collection name and returns object row (or None if user canceled input)"""
         obj = None
         while True:
-            num = input("Укажите номер интересующей Вас коллекции (-1 - отмена): ")
-            while len(num.strip()) == 0:
-                num = input("Пустая строка. Повторите ввод! Укажите номер строки, в которой записана интересующая Вас коллекция (-1 - отмена):").strip()
-            if num == "-1":
-                return None, -1
+            name = input("Укажите НАЗВАНИЕ интересующей Вас коллекции (-1 - отмена): ").strip()
+            if name == "-1":
+                return None
+            if len(name) == 0:
+                print("Пустая строка. Повторите ввод!")
+                continue
             try:
-                obj = self.tables["Collections"].find_by_id(num)
+                # Ищем запись в БД по названию
+                obj = self.tables["Collections"].find_by_name(name)
                 if obj is None:
-                    raise ValueError("Bad id")
+                    raise ValueError("Bad name")
                 break
             except Exception as e:
                 if DEBUG:
                     print("DEBUG MESSAGE: " + str(e))
-                print("Неверный порядковый номер!")
+                print("Неверное название коллекции!")
         return obj
 
     def show_items_by_collection(self, collection):
         table = Table(title=f"Экспонаты коллекции {collection[1]}")
+        
+        # Скрываем колонку ID из заголовков экспонатов
         for col, style in zip(self.tables["Items"].columns, cycle(COLORS)):
+            if col.name == 'id':
+                continue
             table.add_column(col.ru_name, style=style)
 
+        # Скрываем ID из строк экспонатов
         for record in self.tables["Items"].all_by_coll_id(str(collection[0])):
-            table.add_row(*[str(x) for x in record])
+            row_vals = []
+            for col, val in zip(self.tables["Items"].columns, record):
+                if col.name != 'id':
+                    row_vals.append(str(val))
+            table.add_row(*row_vals)
+            
         self.console.print(table)
 
     def add_new_item(self, coll_id):
@@ -192,21 +222,21 @@ class Main:
 
     def remove_item(self):
         while True:
-            try:
-                n = int(input("Введите номер экспоната (-1 - для отмены): "))
-                if n == -1:
-                    break
-            except Exception as e:
-                print("Ну совсем плохой ввод, попробуйте еще раз!") 
+            name = input("Введите НАЗВАНИЕ экспоната для удаления (-1 - для отмены): ").strip()
+            if name == "-1":
+                break
+            if len(name) == 0:
+                print("Пустая строка. Повторите ввод!")
                 continue
 
             try:
-                self.tables["Items"].delete_by_id(n)
+                # Удаляем по названию (предполагается, что колонка называется 'name')
+                self.tables["Items"].delete_by_name(name)
                 break
             except Exception as e:
                 if DEBUG:
                     print("DEBUG: ", str(e))
-                print('Несуществующий номер')
+                print('Несуществующее название экспоната')
 
     def show_main_menu(self):
         menu = f"""Добро пожаловать! 
@@ -294,6 +324,4 @@ class Main:
         DbTable.dbconn.test()
 
 m = Main()
-# m.test()
 m.main_cycle()
-    
