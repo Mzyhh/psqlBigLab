@@ -3,6 +3,7 @@
 from rich.console import Console
 from rich.table import Table
 from itertools import cycle
+from datetime import date
 
 from project_config import *
 from dbconnection import *
@@ -95,21 +96,26 @@ class Main:
     
     def edit_collection(self):
         data = []
-        id = input("Введите № коллекции, которую хотите изменить: ")
+        collection = self.get_collection()
 
-        for col_name in self.tables["Collections"].column_names_without_id():
-            col = self.tables["Collections"].columns_dict[col_name]
+        for i, col in enumerate(self.tables["Collections"].columns[1:]):
             while True:
-                
-                value = input(f"Введите значение поля {col.ru_name} (-1 - отмена): ").strip()
+                value = input(f"Введите значение поля {col.ru_name} (-1 - отмена, пустая строка - оставить как есть): ").strip()
                 if value == "-1":
                     return
+                if len(value) == 0:
+                    value = str(collection[i+1])
+                    break
+
                 try:
+                    value = col.pgtype.format(value)
                     break
                 except Exception as e:
-                    print("Попробуйте еще раз.")
+                    print("Неверный формат. Попробуйте еще раз.")
             data.append(value)
-        self.tables["Collections"].edit_by_id(id, data)
+        if DEBUG:
+            print("DEBUG: ", data)
+        self.tables["Collections"].edit_by_id(collection[0], data)
 
     def show_add_collection(self):
         data = []
@@ -121,9 +127,13 @@ class Main:
                     return
                 try:
                     value = col.pgtype.format(value)
+                    if col_name == '"end"' and date.fromisoformat(data[-1][1:-1]) > date.fromisoformat(value[1:-1]):
+                        print("Конец не может быть раньше начала. Попробуйте еще раз.")
+                        continue
                     break
                 except Exception as e:
-                    print(str(e))
+                    if DEBUG:
+                        print("DEBUG: ", str(e))
                     print("Попробуйте еще раз.")
             data.append(value)
         self.tables["Collections"].insert_one(data)
@@ -132,7 +142,7 @@ class Main:
         """Ask user for collection id and returns object (or None if user canceled input)"""
         obj = None
         while True:
-            num = input("Укажите номер коллекции, в которой вы хотите посмотреть экспонаты (-1 - отмена): ")
+            num = input("Укажите номер интересующей Вас коллекции (-1 - отмена): ")
             while len(num.strip()) == 0:
                 num = input("Пустая строка. Повторите ввод! Укажите номер строки, в которой записана интересующая Вас коллекция (-1 - отмена):").strip()
             if num == "-1":
